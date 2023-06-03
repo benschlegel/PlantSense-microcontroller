@@ -2,6 +2,7 @@
 #include <HTTPClient.h> 
 #include <WebServer.h>
 #include <WiFiClientSecure.h>
+#include <ArduinoJson.h>
 
 #define BUTTON_PIN 0
 #define GREEN_PIN 27
@@ -20,6 +21,11 @@
 
 #define WIFI_AP_SSID "PlantSense - Planty"
 #define WIFI_AP_PASSWORD "QPLAF3JN2an"
+
+// Public variables
+WebServer server(80);  // Object of WebServer(HTTP port, 80 is default)
+WiFiClientSecure secureClient;
+StaticJsonDocument<250> jsonDocument;
 
 // Currently unused (because not valid), could be replaced in the future
 const char* ROOT_CA= "-----BEGIN CERTIFICATE-----\n" \
@@ -54,14 +60,6 @@ const char* ROOT_CA= "-----BEGIN CERTIFICATE-----\n" \
 "emyPxgcYxn/eR44/KJ4EBs+lVDR3veyJm+kXQ99b21/+jh5Xos1AnX5iItreGCc=\n" \
 "-----END CERTIFICATE-----\n";
 
-WebServer server(80);  // Object of WebServer(HTTP port, 80 is default)
-WiFiClientSecure secureClient;
-
-// Handle root url (/)
-void handle_root() {
-  server.send(200, "text", "HELLO FROM ESP32");
-}
-
 void setup() {
   Serial.begin(115200);
   setColor(0,0,255,1);
@@ -71,6 +69,7 @@ void setup() {
   pinMode(BUTTON_PIN, INPUT_PULLUP);
 
   server.on("/", handle_root);
+  server.on("/led", HTTP_POST, handle_setLed);
 
   server.begin();
   Serial.println("HTTP server started");
@@ -167,4 +166,27 @@ void sendRequest() {
 
     http.end(); //Free the resources
   }
+}
+
+// Handle root url (/)
+void handle_root() {
+  Serial.println("RECEIVED REQUEST ('/')");
+  server.send(200, "text", "HELLO FROM ESP32");
+}
+
+// Handle POST ("/led")
+void handle_setLed() {
+  if (server.hasArg("plain") == false) {
+  }
+  String body = server.arg("plain");
+  deserializeJson(jsonDocument, body);
+
+  int red_value = jsonDocument["red"];
+  int green_value = jsonDocument["green"];
+  int blue_value = jsonDocument["blue"];
+  Serial.println("Red: " + red_value);
+  Serial.println("Blue: " + green_value);
+  Serial.println("Green: " + blue_value);
+
+  server.send(200, "application/json", "{}");
 }
