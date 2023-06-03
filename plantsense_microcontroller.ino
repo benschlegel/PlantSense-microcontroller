@@ -10,9 +10,9 @@
 #define RED_PIN 12
 #define FULL_BRIGHTNESS 1
 
-#define DEFAULT_COLOR_R 255
-#define DEFAULT_COLOR_G 0
-#define DEFAULT_COLOR_B 255
+// #define DEFAULT_COLOR_R 255
+// #define DEFAULT_COLOR_G 0
+// #define led_blue 255
 
 #define BUTTON_PRESS_DELAY 200
 
@@ -26,6 +26,11 @@
 WebServer server(80);  // Object of WebServer(HTTP port, 80 is default)
 WiFiClientSecure secureClient;
 StaticJsonDocument<250> jsonDocument;
+
+// LED colors
+int led_red = 255;
+int led_green = 0;
+int led_blue = 255;
 
 // Currently unused (because not valid), could be replaced in the future
 const char* ROOT_CA= "-----BEGIN CERTIFICATE-----\n" \
@@ -97,9 +102,9 @@ void loop() {
 
   // Use breathing effect or full brightness
   if(isBreathing) {
-    setColor(DEFAULT_COLOR_R,DEFAULT_COLOR_G,DEFAULT_COLOR_B,intensity);
+    setColor(led_red,led_green,led_blue,intensity);
   } else {
-    setColor(DEFAULT_COLOR_R,DEFAULT_COLOR_G,DEFAULT_COLOR_B,FULL_BRIGHTNESS);
+    setColor(led_red,led_green,led_blue,FULL_BRIGHTNESS);
   }
 
   if(counting){
@@ -176,17 +181,25 @@ void handle_root() {
 
 // Handle POST ("/led")
 void handle_setLed() {
-  if (server.hasArg("plain") == false) {
-  }
+  // if (server.hasArg("plain") == false) {
+  //   return;
+  // }
+
+  // Ideally, update this to "application/json", but no idea how
   String body = server.arg("plain");
   deserializeJson(jsonDocument, body);
 
   int red_value = jsonDocument["red"];
   int green_value = jsonDocument["green"];
   int blue_value = jsonDocument["blue"];
-  Serial.println("Red: " + red_value);
-  Serial.println("Blue: " + green_value);
-  Serial.println("Green: " + blue_value);
+  Serial.println(red_value);
+  Serial.println(green_value);
+  Serial.println(blue_value);
+
+  // Set new led colors (will automatically be used in loop)
+  led_red = red_value;
+  led_green = green_value;
+  led_blue = blue_value;
 
   server.send(200, "application/json", "{}");
 }
