@@ -143,29 +143,28 @@ void initWiFi() {
 }
 
 void sendRequest() {
-  HTTPClient https;
+  HTTPClient http;
   
   // Your Domain name with URL path or IP address with path
   // Important to prefix IP with "http://"
   // Only use "regular" url for https (when using secureClient raw without httpClient)
-  if(!https.begin(secureClient, "https://plantsense.global.rwutscher.com")) {
-  // if(!secureClient.connect("plantsense.global.rwutscher.com", 443)) {
-    Serial.println("Connection failed!");
-    return;
-  }else {
-    Serial.println("Connected to server!");
-    int httpCode = https.GET();
+  if ((WiFi.status() == WL_CONNECTED)) { //Check the current connection status
 
-    // HTTP header has been send and Server response header has been handled
-    Serial.printf("[HTTPS] GET... code: %d\n", httpCode);
-  // file found at server
-    if (httpCode == HTTP_CODE_OK || httpCode == HTTP_CODE_MOVED_PERMANENTLY) {
-      // print server response payload
-      String payload = https.getString();
-      Serial.println(payload);
+    HTTPClient http;
+
+    http.begin("http://192.168.1.236"); //Specify the URL
+    int httpCode = http.GET();                                        //Make the request
+
+    if (httpCode > 0) { //Check for the returning code
+        String payload = http.getString();
+        Serial.println(httpCode);
+        Serial.println(payload);
+      }
+
+    else {
+      Serial.println("Error on HTTP request");
     }
-  }
 
-  // End https connection
-  https.end();
+    http.end(); //Free the resources
+  }
 }
