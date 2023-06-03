@@ -154,27 +154,6 @@ void sendRequest() {
     return;
   }else {
     Serial.println("Connected to server!");
-
-    // Make http request
-    // secureClient.println("GET https://plantsense.global.rwutscher.com HTTP/1.1");
-    // secureClient.println("Host: plantsense.global.rwutscher.com");
-    // secureClient.println("Connection: close");
-    // secureClient.println();
-
-    // while (secureClient.connected()) {
-    //   String line = secureClient.readStringUntil('\n');
-    //   if (line == "\r") {
-    //     Serial.println("headers received");
-    //     break;
-    //   }
-    // }
-    // // if there are incoming bytes available
-    // // from the server, read them and print them:
-    // while (secureClient.available()) {
-    //   char c = secureClient.read();
-    //   Serial.write(c);
-    // }
-
     int httpCode = https.GET();
 
     // HTTP header has been send and Server response header has been handled
