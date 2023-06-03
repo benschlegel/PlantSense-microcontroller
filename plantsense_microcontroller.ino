@@ -22,7 +22,7 @@
 #define WIFI_AP_SSID "PlantSense - Planty"
 #define WIFI_AP_PASSWORD "QPLAF3JN2an"
 
-// Public variables
+// Global variables
 WebServer server(80);  // Object of WebServer(HTTP port, 80 is default)
 WiFiClientSecure secureClient;
 StaticJsonDocument<250> jsonDocument;
@@ -31,6 +31,11 @@ StaticJsonDocument<250> jsonDocument;
 int led_red = 255;
 int led_green = 0;
 int led_blue = 255;
+
+// LED settings
+int counting = 1; //used for breathing effect, increases intensity if 1, decreases if 0
+bool isBreathing = true;
+double intensity = 0; // between 0.0 and 1 ("brightness percentage")
 
 // Currently unused (because not valid), could be replaced in the future
 const char* ROOT_CA= "-----BEGIN CERTIFICATE-----\n" \
@@ -84,10 +89,6 @@ void setup() {
   delay(100); 
 }
 
-int counting = 1; //used for breathing effect
-bool isBreathing = true;
-double intensity = 0; // between 0.0 and 1 ("brightness percentage")
-
 void loop() {
   // 1 is pressed, 0 is not pressed
   int isPressed = !digitalRead(BUTTON_PIN);
@@ -122,7 +123,7 @@ void loop() {
 }
 
 // Invert bc gate is open by default
-// Alpha controls brightness
+// Alpha controls brightness (percentage between 0.0 and 1)
 void setColor(int red, int green, int blue, double alpha) {
   analogWrite(RED_PIN,   255-(red   * alpha));
   analogWrite(GREEN_PIN, 255-(green * alpha));
@@ -130,6 +131,7 @@ void setColor(int red, int green, int blue, double alpha) {
 }
 
 void initWiFi() {
+  // Access point and station
   WiFi.mode(WIFI_AP_STA);
   // Set up Access Point (WiFi created by esp)
   Serial.println("\n[*] Creating ESP32 AP");
@@ -181,22 +183,16 @@ void handle_root() {
 
 // Handle POST ("/led")
 void handle_setLed() {
-  // if (server.hasArg("plain") == false) {
-  //   return;
-  // }
-
   // Ideally, update this to "application/json", but no idea how
   String body = server.arg("plain");
   deserializeJson(jsonDocument, body);
 
+  // Get values from payload
   int red_value = jsonDocument["red"];
   int green_value = jsonDocument["green"];
   int blue_value = jsonDocument["blue"];
-  Serial.println(red_value);
-  Serial.println(green_value);
-  Serial.println(blue_value);
 
-  // Set new led colors (will automatically be used in loop)
+  // Set new led colors (will automatically be used in next iteration loop)
   led_red = red_value;
   led_green = green_value;
   led_blue = blue_value;
