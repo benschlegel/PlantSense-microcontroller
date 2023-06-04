@@ -184,7 +184,6 @@ void handle_root() {
 
 // Handle heartbeat ("/heartbeat")
 void handle_heartbeat() {
-  Serial.println("RECEIVED REQUEST ('/heartbeat')");
   server.send(200);
 }
 
