@@ -79,6 +79,7 @@ void setup() {
   pinMode(BUTTON_PIN, INPUT_PULLUP);
 
   server.on("/", handle_root);
+  server.on("/heartbeat", handle_heartbeat);
   server.on("/led", HTTP_POST, handle_setLed);
 
   server.begin();
@@ -179,6 +180,12 @@ void sendRequest() {
 void handle_root() {
   Serial.println("RECEIVED REQUEST ('/')");
   server.send(200, "text", "HELLO FROM ESP32");
+}
+
+// Handle heartbeat ("/heartbeat")
+void handle_heartbeat() {
+  Serial.println("RECEIVED REQUEST ('/heartbeat')");
+  server.send(200);
 }
 
 // Handle POST ("/led")
