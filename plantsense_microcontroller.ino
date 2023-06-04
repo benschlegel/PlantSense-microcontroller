@@ -10,9 +10,7 @@
 #define RED_PIN 12
 #define FULL_BRIGHTNESS 1
 
-// #define DEFAULT_COLOR_R 255
-// #define DEFAULT_COLOR_G 0
-// #define led_blue 255
+#define SERVER_URL "http://192.168.141.24"
 
 #define BUTTON_PRESS_DELAY 200
 
@@ -25,7 +23,8 @@
 // Global variables
 WebServer server(80);  // Object of WebServer(HTTP port, 80 is default)
 WiFiClientSecure secureClient;
-StaticJsonDocument<250> jsonDocument;
+StaticJsonDocument<250> receivedRgbJson;
+StaticJsonDocument<100> deviceNameJson;
 
 // LED colors
 int led_red = 255;
@@ -36,6 +35,9 @@ int led_blue = 255;
 int counting = 1; //used for breathing effect, increases intensity if 1, decreases if 0
 bool isBreathing = true;
 double intensity = 0; // between 0.0 and 1 ("brightness percentage")
+
+// Also used for WiFi access point, 
+String device_name = "PlantSense - Planty";
 
 // Currently unused (because not valid), could be replaced in the future
 const char* ROOT_CA= "-----BEGIN CERTIFICATE-----\n" \
@@ -94,12 +96,14 @@ void loop() {
   // 1 is pressed, 0 is not pressed
   int isPressed = !digitalRead(BUTTON_PIN);
 
-  // If button is pressed, switch between modes
+  // If button is pressed, switch between modes/send notification
   if(isPressed) {
-    isBreathing = !isBreathing;
+    // isBreathing = !isBreathing;
     // Add delay to not trigger button press multiple times
     delay(BUTTON_PRESS_DELAY);
-    sendRequest();
+
+    // Update IP in this method
+    sendNotification();
   } 
 
   // Use breathing effect or full brightness
@@ -136,7 +140,7 @@ void initWiFi() {
   WiFi.mode(WIFI_AP_STA);
   // Set up Access Point (WiFi created by esp)
   Serial.println("\n[*] Creating ESP32 AP");
-  WiFi.softAP(WIFI_AP_SSID, WIFI_AP_PASSWORD);  /*Configuring ESP32 access point SSID and password*/
+  WiFi.softAP(device_name, WIFI_AP_PASSWORD);  /*Configuring ESP32 access point SSID and password*/
   Serial.print("[+] AP Created with IP Gateway ");
 
   // Connect to predefined hotspot/network
@@ -149,18 +153,22 @@ void initWiFi() {
   Serial.println(WiFi.localIP());
 }
 
-void sendRequest() {
-  HTTPClient http;
-  
+void sendNotification() { 
   // Your Domain name with URL path or IP address with path
   // Important to prefix IP with "http://"
   // Only use "regular" url for https (when using secureClient raw without httpClient)
   if ((WiFi.status() == WL_CONNECTED)) { //Check the current connection status
-
     HTTPClient http;
+    
+    // Set up json payload with device name
+    deviceNameJson["name"] = device_name;
+    String jsonString;
+    serializeJson(deviceNameJson, jsonString);
 
-    http.begin("http://192.168.1.236"); //Specify the URL
-    int httpCode = http.GET();                                        //Make the request
+    // Update with new IP, if it changes
+    http.begin("http://192.168.141.24/sendNotification");
+    http.addHeader("Content-Type", "application/json");
+    int httpCode = http.POST(jsonString);                                        //Make the request
 
     if (httpCode > 0) { //Check for the returning code
         String payload = http.getString();
@@ -191,12 +199,12 @@ void handle_heartbeat() {
 void handle_setLed() {
   // Ideally, update this to "application/json", but no idea how
   String body = server.arg("plain");
-  deserializeJson(jsonDocument, body);
+  deserializeJson(receivedRgbJson, body);
 
   // Get values from payload
-  int red_value = jsonDocument["red"];
-  int green_value = jsonDocument["green"];
-  int blue_value = jsonDocument["blue"];
+  int red_value = receivedRgbJson["red"];
+  int green_value = receivedRgbJson["green"];
+  int blue_value = receivedRgbJson["blue"];
 
   // Set new led colors (will automatically be used in next iteration loop)
   led_red = red_value;
