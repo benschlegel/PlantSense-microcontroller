@@ -1,7 +1,6 @@
 #include <WiFi.h>
 #include <HTTPClient.h> 
 #include <WebServer.h>
-#include <WiFiClientSecure.h>
 #include <ArduinoJson.h>
 
 #define BUTTON_PIN 0
@@ -22,7 +21,6 @@
 
 // Global variables
 WebServer server(80);  // Object of WebServer(HTTP port, 80 is default)
-WiFiClientSecure secureClient;
 StaticJsonDocument<250> receivedRgbJson;
 StaticJsonDocument<100> deviceNameJson;
 
@@ -88,8 +86,9 @@ void setup() {
   Serial.println("HTTP server started");
 
   // Set CA Cert for https (or setInsecure to not check for cert)
-  secureClient.setInsecure();
+  // secureClient.setInsecure();
   delay(100); 
+  registerDevice();
 }
 
 void loop() {
@@ -151,6 +150,37 @@ void initWiFi() {
     delay(1000);
   }
   Serial.println(WiFi.localIP());
+}
+
+void registerDevice() {
+  // Your Domain name with URL path or IP address with path
+  // Important to prefix IP with "http://"
+  // Only use "regular" url for https (when using secureClient raw without httpClient)
+  if ((WiFi.status() == WL_CONNECTED)) { //Check the current connection status
+    HTTPClient http;
+    
+    // Set up json payload with device name
+    deviceNameJson["name"] = device_name;
+    String jsonString;
+    serializeJson(deviceNameJson, jsonString);
+
+    // Update with new IP, if it changes
+    http.begin("http://192.168.141.24/registerDevice");
+    http.addHeader("Content-Type", "application/json");
+    int httpCode = http.POST(jsonString);                                        //Make the request
+
+    if (httpCode > 0) { //Check for the returning code
+        String payload = http.getString();
+        Serial.println(httpCode);
+        Serial.println(payload);
+      }
+
+    else {
+      Serial.println("Error on HTTP request");
+    }
+
+    http.end(); //Free the resources
+  }
 }
 
 void sendNotification() { 
