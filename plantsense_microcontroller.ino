@@ -22,7 +22,8 @@
 // Global variables
 WebServer server(80);  // Object of WebServer(HTTP port, 80 is default)
 StaticJsonDocument<250> receivedRgbJson;
-StaticJsonDocument<100> deviceNameJson;
+StaticJsonDocument<100> singleArgJson;
+StaticJsonDocument<100> stateJson;
 
 // LED colors
 int led_red = 255;
@@ -81,6 +82,7 @@ void setup() {
   server.on("/", handle_root);
   server.on("/heartbeat", handle_heartbeat);
   server.on("/led", HTTP_POST, handle_setLed);
+  server.on("/setState", HTTP_POST, handle_setState);
 
   server.begin();
   Serial.println("HTTP server started");
@@ -160,9 +162,9 @@ void registerDevice() {
     HTTPClient http;
     
     // Set up json payload with device name
-    deviceNameJson["name"] = device_name;
+    singleArgJson["name"] = device_name;
     String jsonString;
-    serializeJson(deviceNameJson, jsonString);
+    serializeJson(singleArgJson, jsonString);
 
     // Update with new IP, if it changes
     http.begin("http://192.168.141.24/registerDevice");
@@ -191,9 +193,9 @@ void sendNotification() {
     HTTPClient http;
     
     // Set up json payload with device name
-    deviceNameJson["name"] = device_name;
+    singleArgJson["name"] = device_name;
     String jsonString;
-    serializeJson(deviceNameJson, jsonString);
+    serializeJson(singleArgJson, jsonString);
 
     // Update with new IP, if it changes
     http.begin("http://192.168.141.24/sendNotification");
@@ -241,5 +243,21 @@ void handle_setLed() {
   led_green = green_value;
   led_blue = blue_value;
 
-  server.send(200, "application/json", "{}");
+  server.send(200);
+}
+
+// Handle POST ("/setState")
+void handle_setState() {
+  // Ideally, update this to "application/json", but no idea how
+  String body = server.arg("plain");
+  deserializeJson(singleArgJson, body);
+
+  // Get values from payload
+  bool isSolid = singleArgJson["isSolid"];
+
+  // Set new value
+  isBreathing = !isSolid;
+
+  // Send response
+  server.send(200);
 }
