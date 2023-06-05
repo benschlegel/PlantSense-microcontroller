@@ -83,6 +83,7 @@ void setup() {
   server.on("/heartbeat", handle_heartbeat);
   server.on("/led", HTTP_POST, handle_setLed);
   server.on("/setState", HTTP_POST, handle_setState);
+  server.on("/toggleState", HTTP_POST, handle_toggleState);
 
   server.begin();
   Serial.println("HTTP server started");
@@ -257,6 +258,15 @@ void handle_setState() {
 
   // Set new value
   isBreathing = !isSolid;
+
+  // Send response
+  server.send(200);
+}
+
+// Handle POST ("/toggleState")
+void handle_toggleState() {
+  // Toggle state
+  isBreathing = !isBreathing;
 
   // Send response
   server.send(200);
