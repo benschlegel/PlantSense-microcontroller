@@ -33,6 +33,7 @@ const IPAddress NMask = IPAddress(255, 255, 255, 0);
 // Global variables
 WebServer server(80);  // Object of WebServer(HTTP port, 80 is default)
 StaticJsonDocument<250> receivedRgbJson;
+StaticJsonDocument<200> multiArgJson;;
 StaticJsonDocument<100> singleArgJson;
 StaticJsonDocument<100> stateJson;
 
@@ -99,6 +100,8 @@ void setup() {
   // setCredentialPreferences(WIFI_SSID, WIFI_PASSWORD);
   ssid = getSSIDPreference();
   password = getPasswordPreference();
+  Serial.println(ssid);
+  Serial.println(password);
 
   if (ssid == "" || password == "") {
     Serial.println("No wifi credentials were found.");
@@ -117,6 +120,8 @@ void setup() {
   server.on("/led", HTTP_POST, handle_setLed);
   server.on("/setState", HTTP_POST, handle_setState);
   server.on("/toggleState", HTTP_POST, handle_toggleState);
+  server.on("/setHost", HTTP_POST, handle_setHostAddress);
+  server.on("/setCredentials", HTTP_POST, handle_setCredentials);
 
   server.begin();
   Serial.println("HTTP server started");
@@ -244,6 +249,18 @@ void setCredentialPreferences(String ssid, String password) {
   preferences.end();
 } 
 
+void setWifiPasswordPreference(String password) {
+  preferences.begin("credentials", false);
+  preferences.putString("password", password);
+  preferences.end();
+}
+
+void setWifiSSIDPreference(String ssid) {
+  preferences.begin("credentials", false);
+  preferences.putString("ssid", ssid);
+  preferences.end();
+}
+
 String getSSIDPreference() {
   preferences.begin("credentials", false);
   String ssid = preferences.getString("ssid", "");
@@ -361,6 +378,43 @@ void handle_setState() {
 
   // Set new value
   isBreathing = !isSolid;
+
+  // Send response
+  server.send(200);
+}
+
+// Handle POST ("/setCredentials")
+void handle_setCredentials() {
+  String body = server.arg("plain");
+  deserializeJson(multiArgJson, body);
+
+  if (multiArgJson.containsKey("ssid")) {
+    // Get value from payload
+    String ssid = multiArgJson["ssid"];
+    // TODO: switch to credential function
+    setWifiSSIDPreference(ssid);
+  }
+
+  if (multiArgJson.containsKey("password")) {
+    // Get value from payload
+    String password = multiArgJson["password"];
+    setWifiPasswordPreference(password);
+  }
+
+  // Send response
+  server.send(200);
+}
+
+// Handle POST ("/setCredentials")
+void handle_setHostAddress() {
+  String body = server.arg("plain");
+  deserializeJson(multiArgJson, body);
+
+  if (multiArgJson.containsKey("host")) {
+    // Get value from payload
+    String host = multiArgJson["host"];
+    setServerHostPreference(host);
+  }
 
   // Send response
   server.send(200);
