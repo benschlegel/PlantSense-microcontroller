@@ -20,6 +20,8 @@
 #define WIFI_AP_SSID "PlantSense - Planty"
 #define WIFI_AP_PASSWORD "QPLAF3JN2an"
 
+#define WIFI_CONNECTION_ATTEMPT_SECONDS 5
+
 // Define Preferences
 Preferences preferences;
 
@@ -36,6 +38,10 @@ StaticJsonDocument<100> stateJson;
 
 // Server host address
 String serverHost;
+
+// Wifi credentials
+String ssid;
+String password;
 
 // LED colors
 int led_red = 255;
@@ -87,12 +93,21 @@ void setup() {
   Serial.begin(115200);
 
   // Get host from preferences
+
+  // setServerHostPreference(SERVER_URL);
   serverHost = getServerHostPreference();
+  // setCredentialPreferences(WIFI_SSID, WIFI_PASSWORD);
+  ssid = getSSIDPreference();
+  password = getPasswordPreference();
+
+  if (ssid == "" || password == "") {
+    Serial.println("No wifi credentials were found.");
+  }
 
   // Set color of LED during setup
   setColor(0,0,255,1);
-  // initWiFi();
-  initAP();
+  initWiFiNew();
+  // initAP();
 
   //Serial.begin(9600);
   pinMode(BUTTON_PIN, INPUT_PULLUP);
@@ -155,21 +170,6 @@ void setColor(int red, int green, int blue, double alpha) {
   analogWrite(BLUE_PIN,  255-(blue  * alpha));
 }
 
-void initAP() {
-  WiFi.mode(WIFI_AP);
-  WiFi.softAP(WIFI_AP_SSID);
-  delay(1000);
-
-  WiFi.softAPConfig(IP, IP, NMask);
-
-  delay(1000);
-
-  IPAddress myIP = WiFi.softAPIP();
-  Serial.println();
-  Serial.print("AP IP address: ");
-  Serial.println(myIP);
-}
-
 void initWiFi() {
   // Access point and station
   WiFi.mode(WIFI_AP_STA);
@@ -186,6 +186,39 @@ void initWiFi() {
     delay(1000);
   }
   Serial.println(WiFi.localIP());
+}
+
+void initWiFiNew() {
+  // First, connect as station
+  WiFi.mode(WIFI_STA);
+  WiFi.begin(ssid, password);
+
+  // Check if connection to wifi is possible
+  int i; 
+  for (i = 0; i < WIFI_CONNECTION_ATTEMPT_SECONDS; i++) {
+    if (WiFi.status() == WL_CONNECTED) {
+      break;
+    }
+    delay(1000);
+  }
+
+  if (i < WIFI_CONNECTION_ATTEMPT_SECONDS) {
+    // If connection via wifi is already successful, return early;
+    return;
+  }
+
+  // Open access point to configure device, if connection was not successful
+  WiFi.disconnect();
+  initAP();
+
+}
+
+void initAP() {
+  WiFi.mode(WIFI_AP);
+  WiFi.softAP(WIFI_AP_SSID, WIFI_AP_PASSWORD);
+  delay(500);
+
+  WiFi.softAPConfig(IP, IP, NMask);
 }
 
 // Gets host preference from storage
@@ -210,6 +243,20 @@ void setCredentialPreferences(String ssid, String password) {
   preferences.putString("password", password);
   preferences.end();
 } 
+
+String getSSIDPreference() {
+  preferences.begin("credentials", false);
+  String ssid = preferences.getString("ssid", "");
+  preferences.end();
+  return ssid;
+}
+
+String getPasswordPreference() {
+  preferences.begin("credentials", false);
+  String password = preferences.getString("password", "");
+  preferences.end();
+  return password;
+}
 
 void registerDevice() {
   // Your Domain name with URL path or IP address with path
