@@ -291,7 +291,8 @@ bool registerDevice() {
     HTTPClient http;
 
     // Set up json payload with device name
-    singleArgJson["name"] = device_name;
+    singleArgJson["deviceName"] = device_name;
+    singleArgJson["localIP"] = WiFi.localIP();
     String jsonString;
     serializeJson(singleArgJson, jsonString);
 
