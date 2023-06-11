@@ -101,8 +101,6 @@ void setup() {
   // setCredentialPreferences(WIFI_SSID, WIFI_PASSWORD);
   ssid = getSSIDPreference();
   password = getPasswordPreference();
-  Serial.println(ssid);
-  Serial.println(password);
 
   if (ssid == "" || password == "") {
     Serial.println("No wifi credentials were found.");
@@ -110,8 +108,17 @@ void setup() {
 
   // Set color of LED during setup
   setColor(0,0,255,1);
-  initWiFiNew();
-  // initAP();
+  bool isAP = initWiFiNew();
+
+  if (!isAP) {
+    // If connection to wifi was successful, call server and register device
+    bool isServerReachable = registerDevice();
+
+    // If server is not reachable, go back to init mode
+    if (!isServerReachable) {
+      initAP();
+    }
+  }
 
   //Serial.begin(9600);
   pinMode(BUTTON_PIN, INPUT_PULLUP);
@@ -130,7 +137,6 @@ void setup() {
   // Set CA Cert for https (or setInsecure to not check for cert)
   // secureClient.setInsecure();
   delay(100);
-  registerDevice();
 }
 
 void loop() {
@@ -194,7 +200,7 @@ void initWiFi() {
   Serial.println(WiFi.localIP());
 }
 
-void initWiFiNew() {
+bool initWiFiNew() {
   // First, connect as station
   WiFi.mode(WIFI_STA);
   WiFi.begin(ssid, password);
@@ -211,13 +217,13 @@ void initWiFiNew() {
   if (i < WIFI_CONNECTION_ATTEMPT_SECONDS) {
     // If connection via wifi is already successful, return early;
     Serial.println("Connected to wifi!");
-    return;
+    return false;
   }
 
   // Open access point to configure device, if connection was not successful
   WiFi.disconnect();
   initAP();
-
+  return true;
 }
 
 void initAP() {
@@ -277,7 +283,7 @@ String getPasswordPreference() {
   return password;
 }
 
-void registerDevice() {
+bool registerDevice() {
   // Your Domain name with URL path or IP address with path
   // Important to prefix IP with "http://"
   // Only use "regular" url for https (when using secureClient raw without httpClient)
@@ -295,13 +301,11 @@ void registerDevice() {
     int httpCode = http.POST(jsonString);                                        //Make the request
 
     if (httpCode > 0) { //Check for the returning code
-        String payload = http.getString();
-        Serial.println(httpCode);
-        Serial.println(payload);
-      }
-
-    else {
-      Serial.println("Error on HTTP request");
+        Serial.println("Device registered on server successfully.");
+        return true;
+    } else {
+      Serial.println("Server unreachable.");
+      return false;
     }
 
     http.end(); //Free the resources
