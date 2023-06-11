@@ -1,3 +1,4 @@
+#include <ESPmDNS.h>
 #include <WiFi.h>
 #include <HTTPClient.h>
 #include <WebServer.h>
@@ -20,6 +21,8 @@
 #define WIFI_AP_SSID "PlantSense - Planty"
 #define WIFI_AP_PASSWORD "QPLAF3JN2an"
 
+#define HOST_PREFIX "plantsense_"
+
 #define WIFI_CONNECTION_ATTEMPT_SECONDS 5
 
 // Define Preferences
@@ -40,6 +43,7 @@ StaticJsonDocument<100> stateJson;
 // Server host address
 String serverHost;
 const String serverPrefix = "/v1/mc";
+const String test = "esp32";
 
 // Wifi credentials
 String ssid;
@@ -96,8 +100,9 @@ void setup() {
 
   // Get host from preferences
 
-  // setServerHostPreference("http://192.168.1.208");
+  // setServerHostPreference("https://plantsense.global.rwutscher.com");
   serverHost = getServerHostPreference() + serverPrefix;
+  Serial.println(serverHost);
   // setCredentialPreferences(WIFI_SSID, WIFI_PASSWORD);
   ssid = getSSIDPreference();
   password = getPasswordPreference();
@@ -115,8 +120,12 @@ void setup() {
     bool isServerReachable = registerDevice();
 
     // If server is not reachable, go back to init mode
+    Serial.println(WiFi.gatewayIP());
     if (!isServerReachable) {
       initAP();
+    } else {
+      // WiFi.setHostname(test.c_str());
+      SetUpMDNS();
     }
   }
 
@@ -135,7 +144,7 @@ void setup() {
   Serial.println("HTTP server started!");
 
   // Set CA Cert for https (or setInsecure to not check for cert)
-  // secureClient.setInsecure();
+  // secureClient->setInsecure();
   delay(100);
 }
 
@@ -182,24 +191,6 @@ void setColor(int red, int green, int blue, double alpha) {
   analogWrite(BLUE_PIN,  255-(blue  * alpha));
 }
 
-void initWiFi() {
-  // Access point and station
-  WiFi.mode(WIFI_AP_STA);
-  // Set up Access Point (WiFi created by esp)
-  Serial.println("\n[*] Creating ESP32 AP");
-  WiFi.softAP(device_name, WIFI_AP_PASSWORD);  /*Configuring ESP32 access point SSID and password*/
-  Serial.print("[+] AP Created with IP Gateway ");
-
-  // Connect to predefined hotspot/network
-  WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
-  Serial.print("Connecting to WiFi ..");
-  while (WiFi.status() != WL_CONNECTED) {
-    Serial.print('.');
-    delay(1000);
-  }
-  Serial.println(WiFi.localIP());
-}
-
 bool initWiFiNew() {
   // First, connect as station
   WiFi.mode(WIFI_STA);
@@ -217,6 +208,7 @@ bool initWiFiNew() {
   if (i < WIFI_CONNECTION_ATTEMPT_SECONDS) {
     // If connection via wifi is already successful, return early;
     Serial.println("Connected to wifi!");
+    // Serial.println("Gateway ip: " + WiFi.gatewayIP());
     return false;
   }
 
@@ -293,6 +285,7 @@ bool registerDevice() {
     // Set up json payload with device name
     singleArgJson["deviceName"] = device_name;
     singleArgJson["localIP"] = WiFi.localIP();
+    singleArgJson["mac"] = WiFi.macAddress();
     String jsonString;
     serializeJson(singleArgJson, jsonString);
 
@@ -434,4 +427,23 @@ void handle_toggleState() {
 
   // Send response
   server.send(200);
+}
+
+void SetUpMDNS() {
+  String mac = WiFi.macAddress();
+  mac.replace(":", "-");
+  String deviceHost = HOST_PREFIX + mac;
+  if (MDNS.begin(deviceHost)) {
+    Serial.println(F("mDNS responder started"));
+    Serial.print(F("I am: "));
+    Serial.println(deviceHost);
+
+    // Add service to MDNS-SD
+    MDNS.addService(deviceHost, "tcp", 80);
+  } else {
+    while (1) {
+      Serial.println(F("Error setting up MDNS responder"));
+      delay(1000);
+    }
+  }
 }
