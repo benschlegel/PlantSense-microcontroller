@@ -1,5 +1,5 @@
 #include <WiFi.h>
-#include <HTTPClient.h> 
+#include <HTTPClient.h>
 #include <WebServer.h>
 #include <ArduinoJson.h>
 #include <Preferences.h>
@@ -55,7 +55,7 @@ int counting = 1; //used for breathing effect, increases intensity if 1, decreas
 bool isBreathing = true;
 double intensity = 0; // between 0.0 and 1 ("brightness percentage")
 
-// Also used for WiFi access point, 
+// Also used for WiFi access point,
 String device_name = "PlantSense - Planty";
 
 // Currently unused (because not valid), could be replaced in the future
@@ -129,7 +129,7 @@ void setup() {
 
   // Set CA Cert for https (or setInsecure to not check for cert)
   // secureClient.setInsecure();
-  delay(100); 
+  delay(100);
   registerDevice();
 }
 
@@ -145,7 +145,7 @@ void loop() {
 
     // Update IP in this method
     sendNotification();
-  } 
+  }
 
   // Use breathing effect or full brightness
   if(isBreathing) {
@@ -161,7 +161,7 @@ void loop() {
   }
 
   if(intensity >= 1 || intensity <= 0) {
-    counting = !counting; 
+    counting = !counting;
   }
   delay(10);
 
@@ -200,7 +200,7 @@ void initWiFiNew() {
   WiFi.begin(ssid, password);
 
   // Check if connection to wifi is possible
-  int i; 
+  int i;
   for (i = 0; i < WIFI_CONNECTION_ATTEMPT_SECONDS; i++) {
     if (WiFi.status() == WL_CONNECTED) {
       break;
@@ -249,7 +249,7 @@ void setCredentialPreferences(String ssid, String password) {
   preferences.putString("ssid", ssid);
   preferences.putString("password", password);
   preferences.end();
-} 
+}
 
 void setWifiPasswordPreference(String password) {
   preferences.begin("credentials", false);
@@ -283,7 +283,7 @@ void registerDevice() {
   // Only use "regular" url for https (when using secureClient raw without httpClient)
   if ((WiFi.status() == WL_CONNECTED)) { //Check the current connection status
     HTTPClient http;
-    
+
     // Set up json payload with device name
     singleArgJson["name"] = device_name;
     String jsonString;
@@ -308,13 +308,13 @@ void registerDevice() {
   }
 }
 
-void sendNotification() { 
+void sendNotification() {
   // Your Domain name with URL path or IP address with path
   // Important to prefix IP with "http://"
   // Only use "regular" url for https (when using secureClient raw without httpClient)
   if ((WiFi.status() == WL_CONNECTED)) { //Check the current connection status
     HTTPClient http;
-    
+
     // Set up json payload with device name
     singleArgJson["name"] = device_name;
     String jsonString;
