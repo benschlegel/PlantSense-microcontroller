@@ -125,7 +125,7 @@ void setup() {
   server.on("/setCredentials", HTTP_POST, handle_setCredentials);
 
   server.begin();
-  Serial.println("HTTP server started");
+  Serial.println("HTTP server started!");
 
   // Set CA Cert for https (or setInsecure to not check for cert)
   // secureClient.setInsecure();
