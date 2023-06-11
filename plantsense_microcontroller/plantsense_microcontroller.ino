@@ -39,6 +39,7 @@ StaticJsonDocument<100> stateJson;
 
 // Server host address
 String serverHost;
+const String serverPrefix = "/v1/mc";
 
 // Wifi credentials
 String ssid;
@@ -95,8 +96,8 @@ void setup() {
 
   // Get host from preferences
 
-  // setServerHostPreference(SERVER_URL);
-  serverHost = getServerHostPreference();
+  // setServerHostPreference("http://192.168.1.208");
+  serverHost = getServerHostPreference() + serverPrefix;
   // setCredentialPreferences(WIFI_SSID, WIFI_PASSWORD);
   ssid = getSSIDPreference();
   password = getPasswordPreference();
@@ -209,6 +210,7 @@ void initWiFiNew() {
 
   if (i < WIFI_CONNECTION_ATTEMPT_SECONDS) {
     // If connection via wifi is already successful, return early;
+    Serial.println("Connected to wifi!");
     return;
   }
 
