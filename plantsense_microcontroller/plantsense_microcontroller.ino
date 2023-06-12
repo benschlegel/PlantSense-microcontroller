@@ -3,6 +3,7 @@
 #include <HTTPClient.h>
 #include <WebServer.h>
 #include <ArduinoJson.h>
+// #include "preferences_access.ino"
 #include <Preferences.h>
 
 #define BUTTON_PIN 0
@@ -27,9 +28,6 @@
 
 #define BUILT_IN_LED_PIN 2
 
-// Define Preferences
-Preferences preferences;
-
 // Access point setup
 const IPAddress IP = {192, 168, 111, 1};
 const IPAddress gateway = IPAddress(192, 168, 111, 1);
@@ -41,6 +39,9 @@ StaticJsonDocument<250> receivedRgbJson;
 StaticJsonDocument<200> multiArgJson;;
 StaticJsonDocument<100> singleArgJson;
 StaticJsonDocument<100> stateJson;
+
+// Define Preferences
+Preferences preferences;
 
 // Server host address
 String serverHost;
@@ -116,6 +117,8 @@ void setup() {
   server.on("/setCredentials", HTTP_POST, handle_setCredentials);
   server.on("/name", HTTP_GET, handle_getName);
   server.on("/name", HTTP_POST, handle_setName);
+  server.on("/setupComplete", HTTP_GET, handle_getSetupComplete);
+  server.on("/setupComplete", HTTP_POST, handle_setSetupComplete);
 
   server.begin();
   Serial.println("HTTP server started!");
@@ -212,68 +215,6 @@ void SetUpMDNS() {
   }
 }
 
-// Gets host preference from storage
-String getServerHostPreference() {
-  preferences.begin("serverInfo", false);
-  String host = preferences.getString("host", "");
-  preferences.end();
-  return host;
-}
-
-String getDeviceNamePreference() {
-  preferences.begin("deviceInfo", false);
-  String deviceName = preferences.getString("name", "");
-  preferences.end();
-  return deviceName;
-}
-
-void setDeviceNamePreference(String name) {
-  preferences.begin("deviceInfo", false);
-  preferences.putString("name", name);
-  preferences.end();
-}
-
-// Set host preference
-void setServerHostPreference(String host) {
-  preferences.begin("serverInfo", false);
-  preferences.putString("host", host);
-  preferences.end();
-}
-
-// Set wifi preferences
-void setCredentialPreferences(String ssid, String password) {
-  preferences.begin("credentials", false);
-  preferences.putString("ssid", ssid);
-  preferences.putString("password", password);
-  preferences.end();
-}
-
-void setWifiPasswordPreference(String password) {
-  preferences.begin("credentials", false);
-  preferences.putString("password", password);
-  preferences.end();
-}
-
-void setWifiSSIDPreference(String ssid) {
-  preferences.begin("credentials", false);
-  preferences.putString("ssid", ssid);
-  preferences.end();
-}
-
-String getSSIDPreference() {
-  preferences.begin("credentials", false);
-  String ssid = preferences.getString("ssid", "");
-  preferences.end();
-  return ssid;
-}
-
-String getPasswordPreference() {
-  preferences.begin("credentials", false);
-  String password = preferences.getString("password", "");
-  preferences.end();
-  return password;
-}
-
 bool registerDevice() {
   // Your Domain name with URL path or IP address with path
   // Important to prefix IP with "http://"
@@ -363,6 +304,97 @@ void handleButtonPress() {
     }
   }
 }
+
+/**
+ *
+ *
+ * Preferences
+ *
+ *
+*/
+
+// Gets host preference from storage
+String getServerHostPreference() {
+  preferences.begin("serverInfo", false);
+  String host = preferences.getString("host", "");
+  preferences.end();
+  return host;
+}
+
+String getDeviceNamePreference() {
+  preferences.begin("deviceInfo", false);
+  String deviceName = preferences.getString("name", "");
+  preferences.end();
+  return deviceName;
+}
+
+void setDeviceNamePreference(String name) {
+  preferences.begin("deviceInfo", false);
+  preferences.putString("name", name);
+  preferences.end();
+}
+
+bool getDeviceSetupPreference() {
+  preferences.begin("deviceInfo", false);
+  bool isSetupComplete = preferences.getBool("setup", false);
+  preferences.end();
+  return isSetupComplete;
+}
+
+void setDeviceSetupPreference(bool isSetupComplete) {
+  preferences.begin("deviceInfo", false);
+  preferences.putBool("setup", isSetupComplete);
+  preferences.end();
+}
+
+// Set host preference
+void setServerHostPreference(String host) {
+  preferences.begin("serverInfo", false);
+  preferences.putString("host", host);
+  preferences.end();
+}
+
+// Set wifi preferences
+void setCredentialPreferences(String ssid, String password) {
+  preferences.begin("credentials", false);
+  preferences.putString("ssid", ssid);
+  preferences.putString("password", password);
+  preferences.end();
+}
+
+void setWifiPasswordPreference(String password) {
+  preferences.begin("credentials", false);
+  preferences.putString("password", password);
+  preferences.end();
+}
+
+void setWifiSSIDPreference(String ssid) {
+  preferences.begin("credentials", false);
+  preferences.putString("ssid", ssid);
+  preferences.end();
+}
+
+String getSSIDPreference() {
+  preferences.begin("credentials", false);
+  String ssid = preferences.getString("ssid", "");
+  preferences.end();
+  return ssid;
+}
+
+String getPasswordPreference() {
+  preferences.begin("credentials", false);
+  String password = preferences.getString("password", "");
+  preferences.end();
+  return password;
+}
+
+/**
+ *
+ *
+ * HTTP endpoints
+ *
+ *
+*/
 
 // Handle root url (/)
 void handle_root() {
@@ -463,7 +495,6 @@ void handle_setName() {
   if (multiArgJson.containsKey("name")) {
     // Get value from payload
     String name = multiArgJson["name"];
-    Serial.println("Name from json: " + name);
     setDeviceNamePreference(name);
   }
 
@@ -474,10 +505,33 @@ void handle_setName() {
 void handle_getName() {
   StaticJsonDocument<100> nameJson;
   String prefName = getDeviceNamePreference();
-  Serial.println("Pref name: " + prefName);
   nameJson["name"] = prefName;
   String jsonString;
   serializeJson(nameJson, jsonString);
-  // server.sendContent("test");
   server.send(200, "text", jsonString);
+}
+
+void handle_getSetupComplete() {
+  Serial.println("Received request setup");
+  StaticJsonDocument<100> setupJson;
+  bool isSetupComplete = getDeviceSetupPreference();
+  setupJson["isComplete"] = isSetupComplete;
+  String jsonString;
+  serializeJson(setupJson, jsonString);
+  server.send(200, "text", jsonString);
+}
+
+
+void handle_setSetupComplete() {
+  String body = server.arg("plain");
+  deserializeJson(singleArgJson, body);
+
+  if (singleArgJson.containsKey("isComplete")) {
+    // Get value from payload
+    bool isComplete = singleArgJson["isComplete"];
+    setDeviceSetupPreference(isComplete);
+  }
+
+  // Send response
+  server.send(200);
 }
