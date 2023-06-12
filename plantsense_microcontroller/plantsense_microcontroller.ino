@@ -6,6 +6,9 @@
 // #include "preferences_access.ino"
 #include <Preferences.h>
 
+// Change this for every device
+#define DEFAULT_DEVICE_NAME "PlantSense - Planty"
+
 #define BUTTON_PIN 0
 #define GREEN_PIN 27
 #define BLUE_PIN 14
@@ -45,6 +48,7 @@ Preferences preferences;
 
 // Server host address
 String serverHost;
+String deviceHost;
 const String serverPrefix = "/v1/mc";
 const String test = "esp32";
 
@@ -70,7 +74,7 @@ long buttonTimer = 0;
 long longPressTime = 500;
 
 // Also used for WiFi access point,
-String device_name = "PlantSense - Planty";
+String device_name;
 
 void setup() {
   Serial.begin(115200);
@@ -78,7 +82,6 @@ void setup() {
   // Get host from preferences
   // setServerHostPreference("https://plantsense.global.rwutscher.com");
   serverHost = getServerHostPreference() + serverPrefix;
-  Serial.println(serverHost);
   // setCredentialPreferences(WIFI_SSID, WIFI_PASSWORD);
   ssid = getSSIDPreference();
   password = getPasswordPreference();
@@ -86,6 +89,9 @@ void setup() {
   if (ssid == "" || password == "") {
     Serial.println("No wifi credentials were found.");
   }
+
+  // Get or set deviceName (get if available, set if not)
+  handleDeviceName();
 
   // Set color of LED during setup
   setColor(0,0,255,1);
@@ -116,8 +122,8 @@ void setup() {
   server.on("/toggleState", HTTP_POST, handle_toggleState);
   server.on("/setHost", HTTP_POST, handle_setHostAddress);
   server.on("/setCredentials", HTTP_POST, handle_setCredentials);
-  server.on("/name", HTTP_GET, handle_getName);
-  server.on("/name", HTTP_POST, handle_setName);
+  server.on("/deviceInfo", HTTP_GET, handle_getInfo);
+  server.on("/deviceInfo", HTTP_POST, handle_setInfo);
   server.on("/setupComplete", HTTP_GET, handle_getSetupComplete);
   server.on("/setupComplete", HTTP_POST, handle_setSetupComplete);
 
@@ -200,14 +206,15 @@ void initAP() {
 void SetUpMDNS() {
   String mac = WiFi.macAddress();
   mac.replace(":", "-");
-  String deviceHost = HOST_PREFIX + mac;
-  if (MDNS.begin(deviceHost)) {
+  String host = HOST_PREFIX + mac;
+  deviceHost = host;
+  if (MDNS.begin(host)) {
     Serial.println(F("mDNS responder started"));
     Serial.print(F("I am: "));
-    Serial.println(deviceHost);
+    Serial.println(host);
 
     // Add service to MDNS-SD
-    MDNS.addService(deviceHost, "tcp", 80);
+    MDNS.addService(host, "tcp", 80);
   } else {
     while (1) {
       Serial.println(F("Error setting up MDNS responder"));
@@ -326,6 +333,17 @@ void handleButtonPress() {
       }
       buttonActive = false;
     }
+  }
+}
+
+void handleDeviceName() {
+  String name = getDeviceNamePreference();
+  if(name == "") {
+    device_name = DEFAULT_DEVICE_NAME;
+    Serial.println("New device name set: " + device_name);
+  } else {
+    Serial.println("Device name existed: " + name);
+    device_name = name;
   }
 }
 
@@ -512,26 +530,26 @@ void handle_toggleState() {
   server.send(200);
 }
 
-void handle_setName() {
+void handle_setInfo() {
   String body = server.arg("plain");
   deserializeJson(multiArgJson, body);
 
-  if (multiArgJson.containsKey("name")) {
+  if (multiArgJson.containsKey("deviceName")) {
     // Get value from payload
-    String name = multiArgJson["name"];
-    setDeviceNamePreference(name);
+    String deviceName = multiArgJson["deviceName"];
+    setDeviceNamePreference(deviceName);
   }
 
   // Send response
   server.send(200);
 }
 
-void handle_getName() {
-  StaticJsonDocument<100> nameJson;
-  String prefName = getDeviceNamePreference();
-  nameJson["name"] = prefName;
+void handle_getInfo() {
+  StaticJsonDocument<100> infoJson;
+  infoJson["deviceName"] = device_name;
+  infoJson["host"] = deviceHost;
   String jsonString;
-  serializeJson(nameJson, jsonString);
+  serializeJson(infoJson, jsonString);
   server.send(200, "text", jsonString);
 }
 
