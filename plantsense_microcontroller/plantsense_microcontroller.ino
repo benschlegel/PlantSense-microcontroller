@@ -126,6 +126,7 @@ void setup() {
   server.on("/deviceInfo", HTTP_POST, handle_setInfo);
   server.on("/setupComplete", HTTP_GET, handle_getSetupComplete);
   server.on("/setupComplete", HTTP_POST, handle_setSetupComplete);
+  server.on("/networks", HTTP_GET, handle_getNetworks);
 
   server.begin();
   Serial.println("HTTP server started!");
@@ -225,6 +226,7 @@ void SetUpMDNS() {
 
 void scanNetworks() {
   // WiFi.scanNetworks will return the number of networks found
+  Serial.println("Starting scan...");
   int n = WiFi.scanNetworks();
   Serial.println("scan done");
   if (n == 0) {
@@ -576,4 +578,34 @@ void handle_setSetupComplete() {
 
   // Send response
   server.send(200);
+}
+
+void handle_getNetworks() {
+  StaticJsonDocument<250> setupJson;
+  // WiFi.scanNetworks will return the number of networks found
+  // Returns number of found networks
+  int n = WiFi.scanNetworks();
+
+  // Make own json from string
+  String networks = "[";
+  if (n == 0) {
+      Serial.println("no networks found");
+  } else {
+    Serial.print(n);
+    Serial.println(" networks found");
+    String entry;
+    for (int i = 0; i < n; ++i) {
+      entry = "{\"ssid\":\"";
+      entry += WiFi.SSID(i);
+      entry += "\",\"isEncrypted\":";
+      entry += WiFi.encryptionType(i) == WIFI_AUTH_OPEN ? "false" : "true";
+      entry += "}";
+      networks += entry;
+      if (i != n - 1) {
+        networks += ",";
+      }
+    }
+  }
+  networks += "]";
+  server.send(200, "text", networks);
 }
