@@ -25,6 +25,8 @@
 
 #define WIFI_CONNECTION_ATTEMPT_SECONDS 5
 
+#define BUILT_IN_LED_PIN 2
+
 // Define Preferences
 Preferences preferences;
 
@@ -58,6 +60,13 @@ int led_blue = 255;
 int counting = 1; //used for breathing effect, increases intensity if 1, decreases if 0
 bool isBreathing = true;
 double intensity = 0; // between 0.0 and 1 ("brightness percentage")
+
+// Long press config
+bool buttonActive = false;
+bool longPressActive = false;
+
+long buttonTimer = 0;
+long longPressTime = 500;
 
 // Also used for WiFi access point,
 String device_name = "PlantSense - Planty";
@@ -117,18 +126,8 @@ void setup() {
 }
 
 void loop() {
-  // 1 is pressed, 0 is not pressed
-  int isPressed = !digitalRead(BUTTON_PIN);
-
   // If button is pressed, switch between modes/send notification
-  if(isPressed) {
-    // isBreathing = !isBreathing;
-    // Add delay to not trigger button press multiple times
-    delay(BUTTON_PRESS_DELAY);
-
-    // Update IP in this method
-    sendNotification();
-  }
+  handleButtonPress();
 
   // Use breathing effect or full brightness
   if(isBreathing) {
@@ -337,6 +336,34 @@ void sendNotification() {
   }
 }
 
+void handleButtonPress() {
+  if (!digitalRead(BUTTON_PIN)) { // Button is pressed
+
+    if (buttonActive == false) {
+      buttonActive = true;
+      buttonTimer = millis();
+    }
+
+    if ((millis() - buttonTimer > longPressTime) && (longPressActive == false)) { //long press start
+      longPressActive = true;
+    }
+    // Delay to not register 2 button presses within 150ms
+    delay(150);
+  } else {
+    if (buttonActive == true) {
+
+      if (longPressActive == true) { // long press release
+        longPressActive = false;
+        Serial.println("Long press");
+      } else { //short press release
+        Serial.println("Short press");
+        sendNotification();
+      }
+      buttonActive = false;
+    }
+  }
+}
+
 // Handle root url (/)
 void handle_root() {
   Serial.println("RECEIVED REQUEST ('/')");
@@ -454,4 +481,3 @@ void handle_getName() {
   // server.sendContent("test");
   server.send(200, "text", jsonString);
 }
-
