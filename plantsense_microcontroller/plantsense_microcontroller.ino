@@ -90,6 +90,8 @@ void setup() {
     Serial.println("No wifi credentials were found.");
   }
 
+  setDeviceHost();
+
   // Get or set deviceName (get if available, set if not)
   handleDeviceName();
 
@@ -105,6 +107,7 @@ void setup() {
     Serial.println(WiFi.gatewayIP());
     if (!isServerReachable) {
       initAP();
+      Serial.println("Activated AP");
     } else {
       // WiFi.setHostname(test.c_str());
       SetUpMDNS();
@@ -204,18 +207,21 @@ void initAP() {
   WiFi.softAPConfig(IP, IP, NMask);
 }
 
-void SetUpMDNS() {
+void setDeviceHost() {
   String mac = WiFi.macAddress();
   mac.replace(":", "-");
   String host = HOST_PREFIX + mac;
   deviceHost = host;
-  if (MDNS.begin(host)) {
+}
+
+void SetUpMDNS() {
+  if (MDNS.begin(deviceHost)) {
     Serial.println(F("mDNS responder started"));
     Serial.print(F("I am: "));
-    Serial.println(host);
+    Serial.println(deviceHost);
 
     // Add service to MDNS-SD
-    MDNS.addService(host, "tcp", 80);
+    MDNS.addService(deviceHost, "tcp", 80);
   } else {
     while (1) {
       Serial.println(F("Error setting up MDNS responder"));
@@ -550,6 +556,7 @@ void handle_getInfo() {
   StaticJsonDocument<100> infoJson;
   infoJson["deviceName"] = device_name;
   infoJson["host"] = deviceHost;
+  Serial.println("HOST: " + deviceHost);
   String jsonString;
   serializeJson(infoJson, jsonString);
   server.send(200, "text", jsonString);
