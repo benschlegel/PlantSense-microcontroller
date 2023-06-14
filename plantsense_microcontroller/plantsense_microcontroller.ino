@@ -378,6 +378,8 @@ void handleButtonPress() {
       if (longPressActive == true) { // long press release
         longPressActive = false;
         Serial.println("Long press");
+        clearWifiPreferences();
+        initAP();
       } else { //short press release
         Serial.println("Short press");
         sendNotification();
@@ -464,6 +466,12 @@ void setWifiPasswordPreference(String password) {
 void setWifiSSIDPreference(String ssid) {
   preferences.begin("credentials", false);
   preferences.putString("ssid", ssid);
+  preferences.end();
+}
+
+void clearWifiPreferences() {
+  preferences.begin("credentials", false);
+  preferences.clear();
   preferences.end();
 }
 
