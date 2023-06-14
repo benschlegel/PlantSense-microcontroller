@@ -27,7 +27,7 @@
 
 #define HOST_PREFIX "plantsense_"
 
-#define WIFI_CONNECTION_ATTEMPT_SECONDS 5
+#define WIFI_CONNECTION_ATTEMPT_SECONDS 3
 
 #define BUILT_IN_LED_PIN 2
 
@@ -125,6 +125,7 @@ void setup() {
   server.on("/toggleState", HTTP_POST, handle_toggleState);
   server.on("/setHost", HTTP_POST, handle_setHostAddress);
   server.on("/setCredentials", HTTP_POST, handle_setCredentials);
+  server.on("/tryCredentials", HTTP_POST, handle_tryCredentials);
   server.on("/deviceInfo", HTTP_GET, handle_getInfo);
   server.on("/deviceInfo", HTTP_POST, handle_setInfo);
   server.on("/setupComplete", HTTP_GET, handle_getSetupComplete);
@@ -199,8 +200,12 @@ bool initWiFiNew() {
   return true;
 }
 
+/**
+ * Initialize with AP_STA (ap + station)
+*/
 void initAP() {
-  WiFi.mode(WIFI_AP);
+  WiFi.mode(WIFI_AP_STA);
+  Serial.println("Wifi now in AP_STA mode.");
   WiFi.softAP(WIFI_AP_SSID, WIFI_AP_PASSWORD);
   delay(500);
 
@@ -227,6 +232,44 @@ void SetUpMDNS() {
       Serial.println(F("Error setting up MDNS responder"));
       delay(1000);
     }
+  }
+}
+
+bool isServerReachable() {
+  HTTPClient http;
+  http.begin(serverHost);
+  int resCode = http.GET();
+  if (resCode > 0) {
+    return true;
+  } else {
+    return false;
+  }
+}
+
+bool testCredentials(String ssid, String password) {
+  WiFi.disconnect();
+  // WiFi.mode(WIFI_AP_STA);
+  WiFi.begin(ssid, password);
+
+  // Check if connection to wifi is possible
+  int i;
+  bool isConnected = false;
+  for (i = 0; i < WIFI_CONNECTION_ATTEMPT_SECONDS; i++) {
+    if (WiFi.status() == WL_CONNECTED) {
+      Serial.println("Successfully connected");
+      isConnected = true;
+      break;
+    }
+    delay(1000);
+  }
+
+  if(isConnected) { // If wifi is connected, test if server is reachable
+    // bool isReachable = isServerReachable();
+    // return isReachable;
+    return true;
+  } else {
+    Serial.println("Connection was unsuccessful.");
+    return false;
   }
 }
 
@@ -615,4 +658,37 @@ void handle_getNetworks() {
   }
   networks += "]";
   server.send(200, "text", networks);
+}
+
+void handle_tryCredentials() {
+  String body = server.arg("plain");
+  deserializeJson(singleArgJson, body);
+
+  if (singleArgJson.containsKey("ssid") && singleArgJson.containsKey("password")) {
+    // Get value from payload
+    String ssid = singleArgJson["ssid"];
+    String password = singleArgJson["password"];
+
+    Serial.println("Ssid: " + ssid);
+    Serial.println("pw: " + password);
+
+    // Test credentials
+    bool isSuccessful = testCredentials(ssid, password);
+
+    if (isSuccessful) {
+      Serial.println("Wifi now in station mode.");
+
+      server.send(200, "text", "\"{isValid\": true}");
+
+      // After response was sent, switch over to station wifi, set up mdns and save credentials
+      setCredentialPreferences(ssid, password);
+      WiFi.softAPdisconnect(true);
+      WiFi.mode(WIFI_MODE_STA);
+      SetUpMDNS();
+    } else {
+      server.send(200, "text", "{\"isValid\": false}");
+    }
+  } else {
+    server.send(400);
+  }
 }
