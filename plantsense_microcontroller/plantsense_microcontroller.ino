@@ -686,8 +686,10 @@ void handle_tryCredentials() {
     if (isSuccessful) {
       Serial.println("Wifi now in station mode.");
 
-      server.send(200, "text", "\"{isValid\": true}");
+      server.send(200, "text", "{\"isValid\": true}");
 
+      // add delay so response can be sent out before wifi gets shut down
+      delay(250);
       // After response was sent, switch over to station wifi, set up mdns and save credentials
       setCredentialPreferences(ssid, password);
       WiFi.softAPdisconnect(true);
