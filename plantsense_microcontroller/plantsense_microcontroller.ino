@@ -64,6 +64,7 @@ int led_blue = 255;
 // LED settings
 int counting = 1; //used for breathing effect, increases intensity if 1, decreases if 0
 bool isBreathing = true;
+bool isSetupMode = true;
 double intensity = 0; // between 0.0 and 1 ("brightness percentage")
 
 // Long press config
@@ -145,10 +146,12 @@ void loop() {
   handleButtonPress();
 
   // Use breathing effect or full brightness
-  if(isBreathing) {
-    setColor(led_red,led_green,led_blue,intensity);
-  } else {
-    setColor(led_red,led_green,led_blue,FULL_BRIGHTNESS);
+  if(!isSetupMode) {
+    if(isBreathing ) {
+      setColor(led_red,led_green,led_blue,intensity);
+    } else {
+      setColor(led_red,led_green,led_blue,FULL_BRIGHTNESS);
+    }
   }
 
   if(counting){
@@ -191,6 +194,7 @@ bool initWiFiNew() {
     // If connection via wifi is already successful, return early;
     Serial.println("Connected to wifi!");
     // Serial.println("Gateway ip: " + WiFi.gatewayIP());
+    isSetupMode = false;
     return false;
   }
 
@@ -204,6 +208,9 @@ bool initWiFiNew() {
  * Initialize with AP_STA (ap + station)
 */
 void initAP() {
+  // Set color to indicate setup mode
+  isSetupMode = true;
+  setColor(0,255,255, FULL_BRIGHTNESS);
   WiFi.mode(WIFI_AP_STA);
   Serial.println("Wifi now in AP_STA mode.");
   WiFi.softAP(WIFI_AP_SSID, WIFI_AP_PASSWORD);
@@ -697,6 +704,7 @@ void handle_tryCredentials() {
       WiFi.softAPdisconnect(true);
       WiFi.mode(WIFI_MODE_STA);
       SetUpMDNS();
+      isSetupMode = false;
     } else {
       server.send(200, "text", "{\"isValid\": false}");
     }
