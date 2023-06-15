@@ -27,7 +27,7 @@
 
 #define HOST_PREFIX "plantsense_"
 
-#define WIFI_CONNECTION_ATTEMPT_SECONDS 3
+#define WIFI_CONNECTION_ATTEMPT_SECONDS 6
 
 #define BUILT_IN_LED_PIN 2
 
@@ -302,12 +302,13 @@ bool registerDevice() {
   // Important to prefix IP with "http://"
   // Only use "regular" url for https (when using secureClient raw without httpClient)
   if ((WiFi.status() == WL_CONNECTED)) { //Check the current connection status
+    delay(50);
     HTTPClient http;
 
     // Set up json payload with device name
     singleArgJson["deviceName"] = device_name;
     singleArgJson["localIP"] = WiFi.localIP();
-    singleArgJson["mac"] = WiFi.macAddress();
+    singleArgJson["host"] = deviceHost;
     String jsonString;
     serializeJson(singleArgJson, jsonString);
 
@@ -676,6 +677,7 @@ void handle_tryCredentials() {
     // Get value from payload
     String ssid = singleArgJson["ssid"];
     String password = singleArgJson["password"];
+
 
     Serial.println("Ssid: " + ssid);
     Serial.println("pw: " + password);
