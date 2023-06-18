@@ -29,6 +29,8 @@
 
 #define WIFI_CONNECTION_ATTEMPT_SECONDS 6
 
+const String DEFAULT_SERVER_HOST = "https://plantsense.global.rwutscher.com";
+
 #define BUILT_IN_LED_PIN 2
 
 // Access point setup
@@ -344,7 +346,7 @@ void sendNotification() {
     HTTPClient http;
 
     // Set up json payload with device name
-    singleArgJson["name"] = device_name;
+    singleArgJson["host"] = deviceHost;
     String jsonString;
     serializeJson(singleArgJson, jsonString);
 
@@ -419,7 +421,7 @@ void handleDeviceName() {
 // Gets host preference from storage
 String getServerHostPreference() {
   preferences.begin("serverInfo", false);
-  String host = preferences.getString("host", "");
+  String host = preferences.getString("host", DEFAULT_SERVER_HOST);
   preferences.end();
   return host;
 }
@@ -604,6 +606,7 @@ void handle_setInfo() {
   if (multiArgJson.containsKey("deviceName")) {
     // Get value from payload
     String deviceName = multiArgJson["deviceName"];
+    device_name = device_name;
     setDeviceNamePreference(deviceName);
   }
 
@@ -698,13 +701,16 @@ void handle_tryCredentials() {
       server.send(200, "text", "{\"isValid\": true}");
 
       // add delay so response can be sent out before wifi gets shut down
-      delay(250);
+      delay(300);
       // After response was sent, switch over to station wifi, set up mdns and save credentials
       setCredentialPreferences(ssid, password);
       WiFi.softAPdisconnect(true);
       WiFi.mode(WIFI_MODE_STA);
       SetUpMDNS();
       isSetupMode = false;
+
+      // Register device on server
+      registerDevice();
     } else {
       server.send(200, "text", "{\"isValid\": false}");
     }
