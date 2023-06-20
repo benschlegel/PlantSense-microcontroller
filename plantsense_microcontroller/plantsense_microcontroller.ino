@@ -84,7 +84,7 @@ void setup() {
 
   // Get host from preferences
   // setServerHostPreference("https://plantsense.global.rwutscher.com");
-  setServerHostPreference("http://192.168.1.208");
+  // setServerHostPreference("http://192.168.1.208");
   serverHost = getServerHostPreference() + serverPrefix;
   Serial.println("Server host: " + serverHost);
   // setCredentialPreferences(WIFI_SSID, WIFI_PASSWORD);
