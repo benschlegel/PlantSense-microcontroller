@@ -152,13 +152,13 @@ void loop() {
   handleButtonPress();
 
   // Use breathing effect or full brightness
-  Serial.println("Is setup mode: " + isSetupMode);
-  if(!isSetupMode) {
-    if(isBreathing ) {
-      setColor(led_red,led_green,led_blue,intensity);
-    } else {
-      setColor(led_red,led_green,led_blue,FULL_BRIGHTNESS);
-    }
+  // Serial.println("Is setup mode: " + isSetupMode);
+  // if(!isSetupMode) {
+  // }
+  if(isBreathing ) {
+    setColor(led_red,led_green,led_blue,intensity);
+  } else {
+    setColor(led_red,led_green,led_blue,FULL_BRIGHTNESS);
   }
 
   if(counting){
