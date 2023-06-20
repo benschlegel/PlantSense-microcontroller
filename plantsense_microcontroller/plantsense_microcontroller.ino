@@ -335,6 +335,20 @@ bool registerDevice() {
 
     if (httpCode > 0) { //Check for the returning code
         Serial.println("Device registered on server successfully.");
+        String jsonResponse = http.getString();
+        StaticJsonDocument<250> jsonDoc;
+        deserializeJson(jsonDoc, jsonResponse);
+
+        // Get values from payload
+        int red_value = receivedRgbJson["red"];
+        int green_value = receivedRgbJson["green"];
+        int blue_value = receivedRgbJson["blue"];
+
+        // Set new led colors (will automatically be used in next iteration loop)
+        led_red = red_value;
+        led_green = green_value;
+        led_blue = blue_value;
+
         return true;
     } else {
       Serial.println("Server unreachable.");
@@ -364,9 +378,19 @@ void sendNotification() {
     int httpCode = http.POST(jsonString);                                        //Make the request
 
     if (httpCode > 0) { //Check for the returning code
-        String payload = http.getString();
-        Serial.println(httpCode);
-        Serial.println(payload);
+        String jsonResponse = http.getString();
+        StaticJsonDocument<250> jsonDoc;
+        deserializeJson(jsonDoc, jsonResponse);
+
+        // Get values from payload
+        int red_value = receivedRgbJson["red"];
+        int green_value = receivedRgbJson["green"];
+        int blue_value = receivedRgbJson["blue"];
+
+        // Set new led colors (will automatically be used in next iteration loop)
+        led_red = red_value;
+        led_green = green_value;
+        led_blue = blue_value;
       }
 
     else {
