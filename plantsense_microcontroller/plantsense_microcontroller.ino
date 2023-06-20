@@ -343,9 +343,12 @@ bool registerDevice() {
         Serial.println("Response: " + jsonResponse);
 
         // Get values from payload
-        int red_value = jsonDoc["red"];
-        int green_value = jsonDoc["green"];
-        int blue_value = jsonDoc["blue"];
+        int red_value = jsonDoc["rgb"]["red"];
+        int green_value = jsonDoc["rgb"]["green"];
+        int blue_value = jsonDoc["rgb"]["blue"];
+
+        bool isBreathingJson = jsonDoc["isBreathing"];
+        isBreathing = isBreathingJson;
 
         Serial.println("Red: " + red_value);
 
@@ -394,9 +397,12 @@ void sendNotification() {
         deserializeJson(jsonDoc, jsonResponse);
 
         // Get values from payload
-        int red_value = jsonDoc["red"];
-        int green_value = jsonDoc["green"];
-        int blue_value = jsonDoc["blue"];
+        int red_value = jsonDoc["rgb"]["red"];
+        int green_value = jsonDoc["rgb"]["green"];
+        int blue_value = jsonDoc["rgb"]["blue"];
+
+        bool isBreathingJson = jsonDoc["isBreathing"];
+        isBreathing = isBreathingJson;
 
         // Set new led colors (will automatically be used in next iteration loop)
         led_red = red_value;
@@ -580,9 +586,12 @@ void handle_setLed() {
   deserializeJson(receivedRgbJson, body);
 
   // Get values from payload
-  int red_value = receivedRgbJson["red"];
-  int green_value = receivedRgbJson["green"];
-  int blue_value = receivedRgbJson["blue"];
+  int red_value = receivedRgbJson["rgb"]["red"];
+  int green_value = receivedRgbJson["rgb"]["green"];
+  int blue_value = receivedRgbJson["rgb"]["blue"];
+
+  bool isBreathingJson = receivedRgbJson["isBreathing"];
+  isBreathing = isBreathingJson;
 
   // Set new led colors (will automatically be used in next iteration loop)
   led_red = red_value;
