@@ -85,6 +85,7 @@ void setup() {
   // Get host from preferences
   // setServerHostPreference("https://plantsense.global.rwutscher.com");
   serverHost = getServerHostPreference() + serverPrefix;
+  Serial.println("Server host: " + serverHost);
   // setCredentialPreferences(WIFI_SSID, WIFI_PASSWORD);
   ssid = getSSIDPreference();
   password = getPasswordPreference();
@@ -94,6 +95,7 @@ void setup() {
   }
 
   setDeviceHost();
+  Serial.println("Device host: " + deviceHost);
 
   // Get or set deviceName (get if available, set if not)
   handleDeviceName();
@@ -389,6 +391,7 @@ void handleButtonPress() {
         longPressActive = false;
         Serial.println("Long press");
         clearWifiPreferences();
+        clearServerHostPreference();
         initAP();
       } else { //short press release
         Serial.println("Short press");
@@ -457,6 +460,13 @@ void setServerHostPreference(String host) {
   preferences.begin("serverInfo", false);
   preferences.putString("host", host);
   preferences.end();
+}
+
+void clearServerHostPreference() {
+  preferences.begin("serverInfo", false);
+  preferences.clear();
+  preferences.end();
+  serverHost = DEFAULT_SERVER_HOST;
 }
 
 // Set wifi preferences
@@ -606,7 +616,7 @@ void handle_setInfo() {
   if (multiArgJson.containsKey("deviceName")) {
     // Get value from payload
     String deviceName = multiArgJson["deviceName"];
-    device_name = device_name;
+    device_name = deviceName;
     setDeviceNamePreference(deviceName);
   }
 
@@ -697,8 +707,15 @@ void handle_tryCredentials() {
 
     if (isSuccessful) {
       Serial.println("Wifi now in station mode.");
+      StaticJsonDocument<200> responseJson;
+      responseJson["isValid"] = true;
+      responseJson["host"] = deviceHost;
+      responseJson["deviceName"] = device_name;
 
-      server.send(200, "text", "{\"isValid\": true}");
+      String jsonString;
+      serializeJson(responseJson, jsonString);
+
+      server.send(200, "text", jsonString);
 
       // add delay so response can be sent out before wifi gets shut down
       delay(300);
