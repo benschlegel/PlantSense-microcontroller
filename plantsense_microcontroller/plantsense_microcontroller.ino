@@ -152,6 +152,7 @@ void loop() {
   handleButtonPress();
 
   // Use breathing effect or full brightness
+  Serial.println("Is setup mode: " + isSetupMode);
   if(!isSetupMode) {
     if(isBreathing ) {
       setColor(led_red,led_green,led_blue,intensity);
@@ -349,6 +350,12 @@ bool registerDevice() {
         led_green = green_value;
         led_blue = blue_value;
 
+        Serial.println("Register red: " + led_red);
+        Serial.println("Register green: " + led_green);
+        Serial.println("Register blue: " + led_blue);
+
+        isSetupMode = false;
+
         return true;
     } else {
       Serial.println("Server unreachable.");
@@ -391,6 +398,10 @@ void sendNotification() {
         led_red = red_value;
         led_green = green_value;
         led_blue = blue_value;
+
+        Serial.println("Noticication red: " + led_red);
+        Serial.println("Noticication green: " + led_green);
+        Serial.println("Noticication blue: " + led_blue);
       }
 
     else {
