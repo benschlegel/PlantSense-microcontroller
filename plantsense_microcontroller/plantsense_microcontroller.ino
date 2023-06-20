@@ -84,6 +84,7 @@ void setup() {
 
   // Get host from preferences
   // setServerHostPreference("https://plantsense.global.rwutscher.com");
+  setServerHostPreference("http://192.168.1.208");
   serverHost = getServerHostPreference() + serverPrefix;
   Serial.println("Server host: " + serverHost);
   // setCredentialPreferences(WIFI_SSID, WIFI_PASSWORD);
@@ -99,6 +100,7 @@ void setup() {
 
   // Get or set deviceName (get if available, set if not)
   handleDeviceName();
+  delay(150);
 
   // Set color of LED during setup
   setColor(0,0,255,1);
@@ -313,15 +315,17 @@ bool registerDevice() {
   // Important to prefix IP with "http://"
   // Only use "regular" url for https (when using secureClient raw without httpClient)
   if ((WiFi.status() == WL_CONNECTED)) { //Check the current connection status
+    StaticJsonDocument<100> registerJson;
     delay(50);
     HTTPClient http;
 
+    Serial.println("Registering with host: " + deviceHost);
+
     // Set up json payload with device name
-    singleArgJson["deviceName"] = device_name;
-    singleArgJson["localIP"] = WiFi.localIP();
-    singleArgJson["host"] = deviceHost;
+    registerJson["deviceName"] = device_name;
+    registerJson["host"] = deviceHost;
     String jsonString;
-    serializeJson(singleArgJson, jsonString);
+    serializeJson(registerJson, jsonString);
 
     // Update with new IP, if it changes
     http.begin(serverHost + "/registerDevice");
