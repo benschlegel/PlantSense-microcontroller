@@ -27,7 +27,7 @@
 
 #define HOST_PREFIX "plantsense_"
 
-#define WIFI_CONNECTION_ATTEMPT_SECONDS 6
+#define WIFI_CONNECTION_ATTEMPT_SECONDS 10
 
 const String DEFAULT_SERVER_HOST = "https://plantsense.global.rwutscher.com";
 
@@ -320,6 +320,7 @@ bool registerDevice() {
     HTTPClient http;
 
     Serial.println("Registering with host: " + deviceHost);
+    Serial.println("Registering on host: " + serverHost);
 
     // Set up json payload with device name
     registerJson["deviceName"] = device_name;
@@ -355,6 +356,7 @@ void sendNotification() {
     singleArgJson["host"] = deviceHost;
     String jsonString;
     serializeJson(singleArgJson, jsonString);
+    Serial.println("Sending notification with: " + serverHost);
 
     // Update with new IP, if it changes
     http.begin(serverHost + "/sendNotification");
@@ -470,7 +472,7 @@ void clearServerHostPreference() {
   preferences.begin("serverInfo", false);
   preferences.clear();
   preferences.end();
-  serverHost = DEFAULT_SERVER_HOST;
+  serverHost = DEFAULT_SERVER_HOST + serverPrefix;
 }
 
 // Set wifi preferences
@@ -729,6 +731,8 @@ void handle_tryCredentials() {
       WiFi.mode(WIFI_MODE_STA);
       SetUpMDNS();
       isSetupMode = false;
+
+      // TODO: set serverHost Preference
 
       // Register device on server
       registerDevice();
