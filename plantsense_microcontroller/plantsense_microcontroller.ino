@@ -153,12 +153,14 @@ void loop() {
 
   // Use breathing effect or full brightness
   // Serial.println("Is setup mode: " + isSetupMode);
-  // if(!isSetupMode) {
-  // }
-  if(isBreathing ) {
-    setColor(led_red,led_green,led_blue,intensity);
+  if(!isSetupMode) {
+    if(isBreathing ) {
+      setColor(led_red,led_green,led_blue,intensity);
+    } else {
+      setColor(led_red,led_green,led_blue,FULL_BRIGHTNESS);
+    }
   } else {
-    setColor(led_red,led_green,led_blue,FULL_BRIGHTNESS);
+    setColor(255,0,255,1);
   }
 
   if(counting){
@@ -392,6 +394,7 @@ void sendNotification() {
     int httpCode = http.POST(jsonString);                                        //Make the request
 
     if (httpCode > 0) { //Check for the returning code
+        Serial.println("Http code for send notification: " + httpCode);
         String jsonResponse = http.getString();
         StaticJsonDocument<250> jsonDoc;
         deserializeJson(jsonDoc, jsonResponse);
@@ -409,9 +412,9 @@ void sendNotification() {
         led_green = green_value;
         led_blue = blue_value;
 
-        Serial.println("Noticication red: " + led_red);
-        Serial.println("Noticication green: " + led_green);
-        Serial.println("Noticication blue: " + led_blue);
+        Serial.println("Noticication red: " + red_value);
+        Serial.println("Noticication green: " + green_value);
+        Serial.println("Noticication blue: " + blue_value);
       }
 
     else {
@@ -443,6 +446,7 @@ void handleButtonPress() {
         Serial.println("Long press");
         clearWifiPreferences();
         clearServerHostPreference();
+        isSetupMode = true;
         initAP();
       } else { //short press release
         Serial.println("Short press");
@@ -776,14 +780,15 @@ void handle_tryCredentials() {
       // After response was sent, switch over to station wifi, set up mdns and save credentials
       setCredentialPreferences(ssid, password);
       WiFi.softAPdisconnect(true);
-      WiFi.mode(WIFI_MODE_STA);
-      SetUpMDNS();
-      isSetupMode = false;
+      // WiFi.mode(WIFI_MODE_STA);
+      // SetUpMDNS();
+      // isSetupMode = false;
 
       // TODO: set serverHost Preference
 
       // Register device on server
-      registerDevice();
+      // registerDevice();
+      ESP.restart();
     } else {
       server.send(200, "text", "{\"isValid\": false}");
     }
