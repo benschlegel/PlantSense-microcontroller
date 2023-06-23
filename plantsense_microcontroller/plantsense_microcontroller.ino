@@ -29,6 +29,8 @@
 
 #define WIFI_CONNECTION_ATTEMPT_SECONDS 10
 
+#define MAX_MS_PER_WIFI_CHANNEL 90
+
 const String DEFAULT_SERVER_HOST = "https://plantsense.global.rwutscher.com";
 
 #define BUILT_IN_LED_PIN 2
@@ -721,7 +723,7 @@ void handle_getNetworks() {
   StaticJsonDocument<250> setupJson;
   // WiFi.scanNetworks will return the number of networks found
   // Returns number of found networks
-  int n = WiFi.scanNetworks();
+  int n = WiFi.scanNetworks(false, false, false, MAX_MS_PER_WIFI_CHANNEL);
 
   // Make own json from string
   String networks = "[";
